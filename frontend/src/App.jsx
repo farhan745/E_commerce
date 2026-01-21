@@ -1,5 +1,4 @@
 import React from 'react'
-import {Button} from './components/ui/button.jsx'
 import { createBrowserRouter,RouterProvider } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
@@ -8,6 +7,7 @@ import Login from './pages/Login'
 import Verify from './pages/Verify'
 import VerifyEmail from './pages/VerifyEmail'
 import Footer from './components/Footer.jsx'
+import Profile from './pages/profile.jsx'
 const router = createBrowserRouter([
   {
     path: "/",
@@ -28,7 +28,10 @@ const router = createBrowserRouter([
   {
     path: "/verify/:token",
     element: <><VerifyEmail/></>,
-  }
+  },{
+    path: "/profile",
+    element: <><Navbar/><Profile/></>,
+  },
 ])
 function App() {
   return (

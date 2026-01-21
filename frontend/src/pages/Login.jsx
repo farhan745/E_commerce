@@ -14,10 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { setUser } from "@/redux/userSlice";
+
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // ✅ FIX
+  const [loading, setLoading] = useState(false); 
 
   const [formData, setFormData] = useState({
     
@@ -26,7 +29,7 @@ function Login() {
   });
 
   const navigate = useNavigate();
-
+  const dispatch = useDispatch();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -53,6 +56,8 @@ function Login() {
 
       if (res.data.success) {
         navigate("/");
+        dispatch(setUser(res.data.user));
+          localStorage.setItem("accessToken", res.data.accessToken);
         toast.success(res.data.message);
       }
     } catch (error) {
@@ -73,7 +78,7 @@ function Login() {
         </CardHeader>
 
         <CardContent>
-          {/* ✅ FIX: form added */}
+    
           <form onSubmit={submitHandler}>
             <div className="flex flex-col gap-6">
               {/* <div className="grid grid-cols-2 gap-4">
