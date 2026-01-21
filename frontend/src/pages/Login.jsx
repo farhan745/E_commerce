@@ -1,3 +1,5 @@
+// ⭐⭐⭐ COPY THIS ENTIRE CODE TO: src/pages/Login.jsx ⭐⭐⭐
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,24 +14,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { FaGoogle, FaGithub } from "react-icons/fa";
 import axios from "axios";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/redux/userSlice";
-
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, githubProvider } from "@/firebase/config";
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    
     email: "",
     password: "",
   });
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -38,10 +43,10 @@ function Login() {
     }));
   };
 
+  // Regular Email/Password Login
   const submitHandler = async (e) => {
     e.preventDefault();
-    console.log(formData);
-
+    
     try {
       setLoading(true);
       const res = await axios.post(
@@ -57,34 +62,174 @@ function Login() {
       if (res.data.success) {
         navigate("/");
         dispatch(setUser(res.data.user));
-          localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("accessToken", res.data.accessToken);
         toast.success(res.data.message);
       }
     } catch (error) {
-      console.error("Error during signup:", error);
-      toast.error(error.response?.data?.message || "Signup failed");
+      console.error("Error during login:", error);
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
+
+  // Google Login Handler
+  const handleGoogleLogin = async () => {
+    try {
+      setSocialLoading(true);
+      
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      console.log("Google User:", user);
+
+      const res = await axios.post(
+        "http://localhost:8000/api/v1/user/social-login",
+        {
+          email: user.email,
+          firstName: user.displayName?.split(" ")[0] || "",
+          lastName: user.displayName?.split(" ").slice(1).join(" ") || "",
+          photoURL: user.photoURL,
+          provider: "google",
+          uid: user.uid,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (res.data.success) {
+        navigate("/");
+        dispatch(setUser(res.data.user));
+        localStorage.setItem("accessToken", res.data.accessToken);
+        toast.success("Logged in with Google successfully!");
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      
+      if (error.code === "auth/popup-closed-by-user") {
+        toast.error("Login cancelled");
+      } else if (error.code === "auth/popup-blocked") {
+        toast.error("Please allow popups for this site");
+      } else {
+        toast.error(error.response?.data?.message || "Google login failed");
+      }
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  // GitHub Login Handler
+  const handleGithubLogin = async () => {
+    try {
+      setSocialLoading(true);
+      
+      const result = await signInWithPopup(auth, githubProvider);
+      const user = result.user;
+
+      console.log("GitHub User:", user);
+
+      const res = await axios.post(
+        "http://localhost:8000/api/v1/user/social-login",
+        {
+          email: user.email,
+          firstName: user.displayName?.split(" ")[0] || "GitHub",
+          lastName: user.displayName?.split(" ").slice(1).join(" ") || "User",
+          photoURL: user.photoURL,
+          provider: "github",
+          uid: user.uid,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (res.data.success) {
+        navigate("/");
+        dispatch(setUser(res.data.user));
+        localStorage.setItem("accessToken", res.data.accessToken);
+        toast.success("Logged in with GitHub successfully!");
+      }
+    } catch (error) {
+      console.error("GitHub login error:", error);
+      
+      if (error.code === "auth/popup-closed-by-user") {
+        toast.error("Login cancelled");
+      } else if (error.code === "auth/popup-blocked") {
+        toast.error("Please allow popups for this site");
+      } else if (error.code === "auth/account-exists-with-different-credential") {
+        toast.error("Account already exists with different login method");
+      } else {
+        toast.error(error.response?.data?.message || "GitHub login failed");
+      }
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-pink-100">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Create your account</CardTitle>
+          <CardTitle className="text-2xl">Login to your account</CardTitle>
           <CardDescription>
-            Enter given details below to create your account
+            Enter your credentials below to login
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-    
+          {/* Social Login Buttons */}
+          <div className="flex flex-col gap-3 mb-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleLogin}
+              disabled={socialLoading || loading}
+              className="w-full"
+            >
+              {socialLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FaGoogle className="h-4 w-4 mr-2 text-red-500" />
+              )}
+              Continue with Google
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGithubLogin}
+              disabled={socialLoading || loading}
+              className="w-full"
+            >
+              {socialLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FaGithub className="h-4 w-4 mr-2" />
+              )}
+              Continue with GitHub
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          {/* Email/Password Form */}
           <form onSubmit={submitHandler}>
             <div className="flex flex-col gap-6">
-              {/* <div className="grid grid-cols-2 gap-4">
-  
-              </div> */}
-
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -100,18 +245,16 @@ function Login() {
 
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
-                    placeholder="Enter a password"
+                    placeholder="Enter your password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
                     onChange={handleChange}
                   />
-
                   {showPassword ? (
                     <EyeOff
                       onClick={() => setShowPassword(false)}
@@ -130,7 +273,7 @@ function Login() {
             <Button
               type="submit"
               className="cursor-pointer w-full mt-6 bg-pink-600 hover:bg-pink-500"
-              disabled={loading}
+              disabled={loading || socialLoading}
             >
               {loading ? (
                 <>
@@ -149,7 +292,7 @@ function Login() {
             Don't have an account?{" "}
             <Link
               to="/signup"
-              className="hover:underline cursor-pointer text-pink-800"
+              className="hover:underline cursor-pointer text-pink-800 font-semibold"
             >
               Sign Up
             </Link>
